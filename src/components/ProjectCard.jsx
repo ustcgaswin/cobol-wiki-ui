@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
+import api from "@/api/axios"
 
 function formatCreatedAt(dateStr) {
   if (!dateStr) return "Unknown date";
@@ -70,11 +71,20 @@ const ProjectCard = ({
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleCardClick = (e) => {
+  const handleCardClick = async (e) => {
     // Prevent navigation when delete icon is clicked
     if (e.target.closest(".delete-icon") || e.target.closest(".github-link")) return;
+    if (wiki_status === "generated") {
+      try {
+        const response = await api.get(`/projects/${id}/wiki/content`);
+        console.log("Wiki content:", response.data);
+      } catch (err) {
+        console.error("Failed to fetch wiki content:", err);
+      }
+    }
     navigate(`/wiki/${id}`);
   };
+
 
   const handleDelete = (e) => {
     e.stopPropagation();

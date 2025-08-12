@@ -20,7 +20,7 @@ function slugify(text) {
     .replace(/-+$/, "");
 }
 
-const MarkdownRenderer = ({ content, onExpandMermaid }) => {
+const MarkdownRenderer = ({ content, onExpandMermaid,onLinkClick }) => {
   const components = useMemo(() => {
     // Helper: recursively extract text for slug
     const extractText = (children) => {
@@ -236,10 +236,25 @@ const MarkdownRenderer = ({ content, onExpandMermaid }) => {
       },
 
       a({ href, children }) {
-        const external = href?.startsWith("http");
+        const external = /^https?:\/\//i.test(href || "");
+        const isHash = (href || "").startsWith("#");
+
+        const handleClick = (e) => {
+          if (!href) return;
+          if (external || isHash) return; // let browser handle external links and page anchors
+          if (onLinkClick) {
+            const handled = onLinkClick(href);
+            if (handled) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }
+        };
+
         return (
           <a
             href={href}
+            onClick={handleClick}
             className="font-medium text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
             target={external ? "_blank" : "_self"}
             rel={external ? "noopener noreferrer" : undefined}
@@ -278,7 +293,7 @@ const MarkdownRenderer = ({ content, onExpandMermaid }) => {
         );
       },
     };
-  }, [onExpandMermaid]);
+  }, [onExpandMermaid,onLinkClick]);
 
   return (
     <div className="prose prose-slate prose-lg max-w-none dark:prose-invert prose-headings:scroll-mt-24">
