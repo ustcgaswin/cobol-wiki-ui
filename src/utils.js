@@ -68,6 +68,7 @@ export const initializeMermaid = () => {
       startOnLoad: true,
       theme: 'default',
       securityLevel: 'loose',
+      suppressErrorRendering:true,
       themeVariables: {
         primaryColor: '#3b82f6',
         primaryTextColor: '#1f2937',
