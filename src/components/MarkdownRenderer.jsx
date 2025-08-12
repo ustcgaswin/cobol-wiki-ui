@@ -86,7 +86,7 @@ function LargeCodeBlock({ lang, text }) {
         }}
         customStyle={{
           background: "transparent",
-          padding: "18px 12px 12px 12px", // top padding leaves room for the floating toolbar
+          padding: "18px 12px 12px 12px", // room for hover toolbar
           fontSize: "14px",
           lineHeight: "1.55",
           fontFamily: 'Consolas, "Courier New", monospace',
@@ -150,94 +150,75 @@ const MarkdownRenderer = ({ content, onExpandMermaid, onLinkClick }) => {
 
     return {
       code({ inline, className, children, ...props }) {
-  const match = /language-(\w+)/.exec(className || "");
-  const text = String(children).replace(/\n$/, "");
-  const numLines = text ? text.split(/\r?\n/).length : 0;
-  const isSingleLineFence = numLines <= 1 && text.length <= 120;
+        const match = /language-(\w+)/.exec(className || "");
+        const text = String(children).replace(/\n$/, "");
+        const numLines = text ? text.split(/\r?\n/).length : 0;
+        const isSingleLineFence = numLines <= 1 && text.length <= 120;
 
-  // --- Fenced code with language ---
-  if (!inline && match) {
-    const lang = match[1];
+        // Fenced code with language
+        if (!inline && match) {
+          const lang = match[1];
 
-    if (lang === "mermaid") {
-      return (
-        <div className="p-3">
-          <Mermaid chart={text} onExpand={onExpandMermaid} />
-        </div>
-      );
-    }
+          if (lang === "mermaid") {
+            return (
+              <div className="p-3">
+                <Mermaid chart={text} onExpand={onExpandMermaid} />
+              </div>
+            );
+          }
 
-    // Single-line fenced snippet -> compact pill
-    if (isSingleLineFence) {
-      return (
-        <div className="my-2">
-          <code className="inline-block whitespace-nowrap align-middle rounded-md border border-border bg-muted/50 px-2 py-1 font-mono text-[0.9em] text-foreground shadow-sm hover:bg-muted transition-colors">
-            {text}
-          </code>
-        </div>
-      );
-    }
+          // Single-line fenced snippet -> compact pill
+          if (isSingleLineFence) {
+            return (
+              <code className="not-prose inline-block max-w-full overflow-x-auto whitespace-nowrap align-middle rounded-md border border-border bg-muted/50 px-2 py-1 font-mono text-[0.9em] text-foreground shadow-sm hover:bg-muted transition-colors">
+                {text}
+              </code>
+            );
+          }
 
-    // Large/multiline fenced block with language + copy button
-    return (
-      <div className="my-4 overflow-hidden rounded-lg border border-border bg-muted/20 shadow-sm">
-        {/* Header bar */}
-        <div className="flex items-center justify-between bg-muted/40 px-3 py-1.5 border-b border-border">
-          <span className="text-xs font-mono text-foreground/70">
-            {lang.toUpperCase()}
-          </span>
-          <CopyButton text={text} />
-        </div>
+          // Large/multiline block -> minimal container with hover toolbar
+          return <LargeCodeBlock lang={lang} text={text} />;
+        }
 
-        {/* Code content */}
-        <pre className="overflow-x-auto p-4 text-sm font-mono leading-relaxed scrollbar-thin scrollbar-thumb-muted/50 hover:scrollbar-thumb-muted/70">
-          <code className={`language-${lang} text-foreground`}>{text}</code>
-        </pre>
-      </div>
-    );
-  }
+        // Inline code -> compact pill
+        if (inline) {
+          return (
+            <code
+              className="not-prose inline-block max-w-full overflow-x-auto whitespace-nowrap align-middle rounded-md border border-border bg-muted/50 px-1.5 py-0.5 font-mono text-[0.9em] text-foreground shadow-sm"
+              {...props}
+            >
+              {children}
+            </code>
+          );
+        }
 
-  // --- Inline code pill (unchanged) ---
-  if (inline) {
-    return (
-      <code
-        className="whitespace-nowrap align-middle rounded-md border border-border bg-muted/50 px-1.5 py-0.5 font-mono text-[0.9em] text-foreground shadow-sm"
-        {...props}
-      >
-        {children}
-      </code>
-    );
-  }
+        // Fenced code without language
+        const plain = String(children).replace(/\n$/, "");
+        const plainLines = plain ? plain.split(/\r?\n/).length : 0;
+        const plainIsSingle = plainLines <= 1 && plain.length <= 120;
 
-  // --- Fenced code without language ---
-  const plain = String(children).replace(/\n$/, "");
-  const plainLines = plain ? plain.split(/\r?\n/).length : 0;
-  const plainIsSingle = plainLines <= 1 && plain.length <= 120;
+        if (plainIsSingle) {
+          return (
+            <code className="not-prose inline-block max-w-full overflow-x-auto whitespace-nowrap align-middle rounded-md border border-border bg-muted/50 px-2 py-1 font-mono text-[0.9em] text-foreground shadow-sm hover:bg-muted transition-colors">
+              {plain}
+            </code>
+          );
+        }
 
-  if (plainIsSingle) {
-    return (
-      <div className="my-2">
-        <code className="inline-block whitespace-nowrap align-middle rounded-md border border-border bg-muted/50 px-2 py-1 font-mono text-[0.9em] text-foreground shadow-sm hover:bg-muted transition-colors">
-          {plain}
-        </code>
-      </div>
-    );
-  }
-
-  // Large/multiline fenced block without language + copy button
-  return (
-    <div className="my-4 overflow-hidden rounded-lg border border-border bg-muted/20 shadow-sm">
-      {/* Header bar with only copy button */}
-      <div className="flex items-center justify-end bg-muted/40 px-3 py-1.5 border-b border-border">
-        <CopyButton text={plain} />
-      </div>
-
-      <pre className="overflow-x-auto p-4 text-sm font-mono leading-relaxed scrollbar-thin scrollbar-thumb-muted/50 hover:scrollbar-thumb-muted/70">
-        <code className="text-foreground">{children}</code>
-      </pre>
-    </div>
-  );
-},
+        // Large/multiline fenced block without language -> minimal container with hover copy
+        return (
+          <div className="group relative my-4 rounded-md border bg-muted/10 text-foreground shadow-sm">
+            <div className="pointer-events-none absolute right-2 top-2 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="pointer-events-auto">
+                <CopyButton text={plain} />
+              </div>
+            </div>
+            <pre className="max-h-[55vh] overflow-auto px-3 pb-3 pt-8 text-sm font-mono leading-relaxed">
+              <code className="text-foreground">{children}</code>
+            </pre>
+          </div>
+        );
+      },
 
       blockquote({ children }) {
         return (
