@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api/axios";
 import {
@@ -38,6 +38,9 @@ const WikiPage = () => {
   const [repoOwner, setRepoOwner] = useState("");
   const [repoName, setRepoName] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
+
+  // Ref for the scrollable main content container
+  const contentScrollRef = useRef(null);
 
   // Fetch wiki by project id
   useEffect(() => {
@@ -309,6 +312,14 @@ const WikiPage = () => {
     []
   );
 
+  // Reset scroll to top on page change
+  useEffect(() => {
+    const el = contentScrollRef.current;
+    if (el) {
+      el.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [selectedPage]);
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-900 ">
       {/* Top Header */}
@@ -366,7 +377,7 @@ const WikiPage = () => {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-auto bg-white">
+        <div ref={contentScrollRef} className="flex-1 flex flex-col overflow-auto bg-white">
           {loading ? (
             <div className="p-6 text-sm text-muted-foreground">Loading wiki...</div>
           ) : error ? (

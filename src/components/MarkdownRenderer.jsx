@@ -5,9 +5,106 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Mermaid from "./Mermaid";
 import CopyButton from "./CopyButton";
+
+// Detect dark mode (Tailwind's 'dark' class or OS preference)
+function useIsDarkMode() {
+  const isDocument = typeof document !== "undefined";
+  const initial =
+    isDocument && document.documentElement.classList
+      ? document.documentElement.classList.contains("dark")
+      : false;
+
+  const [isDark, setIsDark] = React.useState(initial);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = () => {
+      const hasClass =
+        typeof document !== "undefined" &&
+        document.documentElement.classList.contains("dark");
+      setIsDark(hasClass || mql.matches);
+    };
+    update();
+    mql.addEventListener("change", update);
+    const observer = new MutationObserver(update);
+    if (typeof document !== "undefined") {
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+    }
+    return () => {
+      mql.removeEventListener("change", update);
+      observer.disconnect();
+    };
+  }, []);
+
+  return isDark;
+}
+
+// Minimal, unobtrusive large code block
+function LargeCodeBlock({ lang, text }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const numLines = text ? text.split(/\r?\n/).length : 0;
+  const isDark = useIsDarkMode();
+  const prismStyle = isDark ? oneDark : oneLight;
+
+  return (
+    <div className="group relative my-4 rounded-md border bg-muted/10 text-foreground shadow-sm">
+      <div className="pointer-events-none absolute right-2 top-2 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="pointer-events-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="rounded border bg-background/70 px-2 py-0.5 text-[11px] text-foreground shadow-sm backdrop-blur hover:bg-background"
+          >
+            {expanded ? "Collapse" : "Expand"}
+          </button>
+          <CopyButton text={text} />
+        </div>
+      </div>
+      <SyntaxHighlighter
+        style={prismStyle}
+        language={lang}
+        PreTag="div"
+        className="!m-0"
+        showLineNumbers={numLines >= 12}
+        wrapLines
+        wrapLongLines
+        lineNumberStyle={{
+          color: "#94a3b8",
+          backgroundColor: "transparent",
+          paddingRight: "0.75em",
+          textAlign: "right",
+          userSelect: "none",
+          minWidth: "2.5em",
+          borderRight: "1px solid rgba(0,0,0,0.06)",
+        }}
+        customStyle={{
+          background: "transparent",
+          padding: "18px 12px 12px 12px", // top padding leaves room for the floating toolbar
+          fontSize: "14px",
+          lineHeight: "1.55",
+          fontFamily: 'Consolas, "Courier New", monospace',
+          maxHeight: expanded ? "none" : "55vh",
+          overflow: "auto",
+        }}
+        codeTagProps={{
+          style: {
+            fontFamily: 'Consolas, "Courier New", monospace',
+            fontSize: "14px",
+          },
+        }}
+      >
+        {text}
+      </SyntaxHighlighter>
+    </div>
+  );
+}
 
 // Slugify for heading IDs
 function slugify(text) {
@@ -20,7 +117,7 @@ function slugify(text) {
     .replace(/-+$/, "");
 }
 
-const MarkdownRenderer = ({ content, onExpandMermaid,onLinkClick }) => {
+const MarkdownRenderer = ({ content, onExpandMermaid, onLinkClick }) => {
   const components = useMemo(() => {
     // Helper: recursively extract text for slug
     const extractText = (children) => {
@@ -53,95 +150,94 @@ const MarkdownRenderer = ({ content, onExpandMermaid,onLinkClick }) => {
 
     return {
       code({ inline, className, children, ...props }) {
-        const match = /language-(\w+)/.exec(className || "");
-        const text = String(children).replace(/\n$/, "");
+  const match = /language-(\w+)/.exec(className || "");
+  const text = String(children).replace(/\n$/, "");
+  const numLines = text ? text.split(/\r?\n/).length : 0;
+  const isSingleLineFence = numLines <= 1 && text.length <= 120;
 
-        if (!inline && match) {
-          const lang = match[1];
+  // --- Fenced code with language ---
+  if (!inline && match) {
+    const lang = match[1];
 
-          if (lang === "mermaid") {
-            return (
-                <div className="p-3">
-                  <Mermaid chart={text} onExpand={onExpandMermaid} />
-                </div>
-            );
-          }
+    if (lang === "mermaid") {
+      return (
+        <div className="p-3">
+          <Mermaid chart={text} onExpand={onExpandMermaid} />
+        </div>
+      );
+    }
 
-          return (
-            <div className="group relative my-6 overflow-hidden rounded-lg border border-gray-700 bg-[#1e1e1e] text-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-gray-700 bg-[#2d2d30] px-4 py-2">
-                <div className="flex items-center space-x-2">
-                  <div className="flex space-x-1">
-                    <div className="h-3 w-3 rounded-full bg-[#ff5f57]"></div>
-                    <div className="h-3 w-3 rounded-full bg-[#ffbd2e]"></div>
-                    <div className="h-3 w-3 rounded-full bg-[#28ca42]"></div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-300">
-                    {lang}
-                  </span>
-                </div>
-                <CopyButton text={text} />
-              </div>
-              <SyntaxHighlighter
-                style={oneDark}
-                language={lang}
-                PreTag="div"
-                className="!m-0"
-                showLineNumbers={true}
-                wrapLines
-                wrapLongLines
-                lineNumberStyle={{
-                  color: '#6e7681',
-                  backgroundColor: '#0d1117',
-                  paddingRight: '1em',
-                  textAlign: 'right',
-                  userSelect: 'none',
-                  minWidth: '3em',
-                  borderRight: '1px solid #30363d'
-                }}
-                customStyle={{
-                  background: '#0d1117',
-                  padding: '12px 0',
-                  fontSize: '14px',
-                  lineHeight: '1.5',
-                  fontFamily: 'Consolas, "Courier New", monospace',
-                }}
-                codeTagProps={{
-                  style: { 
-                    fontFamily: 'Consolas, "Courier New", monospace',
-                    fontSize: '14px'
-                  },
-                }}
-              >
-                {text}
-              </SyntaxHighlighter>
-            </div>
-          );
-        }
+    // Single-line fenced snippet -> compact pill
+    if (isSingleLineFence) {
+      return (
+        <div className="my-2">
+          <code className="inline-block whitespace-nowrap align-middle rounded-md border border-border bg-muted/50 px-2 py-1 font-mono text-[0.9em] text-foreground shadow-sm hover:bg-muted transition-colors">
+            {text}
+          </code>
+        </div>
+      );
+    }
 
-        if (inline) {
-          return (
-            <code
-              className="rounded bg-gray-800 px-1.5 py-0.5 font-mono text-[0.85em] text-gray-200"
-              {...props}
-            >
-              {children}
-            </code>
-          );
-        }
+    // Large/multiline fenced block with language + copy button
+    return (
+      <div className="my-4 overflow-hidden rounded-lg border border-border bg-muted/20 shadow-sm">
+        {/* Header bar */}
+        <div className="flex items-center justify-between bg-muted/40 px-3 py-1.5 border-b border-border">
+          <span className="text-xs font-mono text-foreground/70">
+            {lang.toUpperCase()}
+          </span>
+          <CopyButton text={text} />
+        </div>
 
-        // Fenced code without language
-        return (
-          <div className="group relative my-5 overflow-hidden rounded-lg border border-gray-700 bg-[#1e1e1e] text-white shadow-sm">
-            <div className="absolute right-2 top-2">
-              <CopyButton text={text} />
-            </div>
-            <pre className="overflow-x-auto p-4 bg-[#0d1117]">
-              <code className="text-sm font-mono text-gray-200">{children}</code>
-            </pre>
-          </div>
-        );
-      },
+        {/* Code content */}
+        <pre className="overflow-x-auto p-4 text-sm font-mono leading-relaxed scrollbar-thin scrollbar-thumb-muted/50 hover:scrollbar-thumb-muted/70">
+          <code className={`language-${lang} text-foreground`}>{text}</code>
+        </pre>
+      </div>
+    );
+  }
+
+  // --- Inline code pill (unchanged) ---
+  if (inline) {
+    return (
+      <code
+        className="whitespace-nowrap align-middle rounded-md border border-border bg-muted/50 px-1.5 py-0.5 font-mono text-[0.9em] text-foreground shadow-sm"
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  }
+
+  // --- Fenced code without language ---
+  const plain = String(children).replace(/\n$/, "");
+  const plainLines = plain ? plain.split(/\r?\n/).length : 0;
+  const plainIsSingle = plainLines <= 1 && plain.length <= 120;
+
+  if (plainIsSingle) {
+    return (
+      <div className="my-2">
+        <code className="inline-block whitespace-nowrap align-middle rounded-md border border-border bg-muted/50 px-2 py-1 font-mono text-[0.9em] text-foreground shadow-sm hover:bg-muted transition-colors">
+          {plain}
+        </code>
+      </div>
+    );
+  }
+
+  // Large/multiline fenced block without language + copy button
+  return (
+    <div className="my-4 overflow-hidden rounded-lg border border-border bg-muted/20 shadow-sm">
+      {/* Header bar with only copy button */}
+      <div className="flex items-center justify-end bg-muted/40 px-3 py-1.5 border-b border-border">
+        <CopyButton text={plain} />
+      </div>
+
+      <pre className="overflow-x-auto p-4 text-sm font-mono leading-relaxed scrollbar-thin scrollbar-thumb-muted/50 hover:scrollbar-thumb-muted/70">
+        <code className="text-foreground">{children}</code>
+      </pre>
+    </div>
+  );
+},
 
       blockquote({ children }) {
         return (
@@ -159,11 +255,7 @@ const MarkdownRenderer = ({ content, onExpandMermaid,onLinkClick }) => {
         );
       },
       thead({ children }) {
-        return (
-          <thead className="bg-muted">
-            {children}
-          </thead>
-        );
+        return <thead className="bg-muted">{children}</thead>;
       },
       th({ children }) {
         return (
@@ -173,15 +265,11 @@ const MarkdownRenderer = ({ content, onExpandMermaid,onLinkClick }) => {
         );
       },
       td({ children }) {
-        return (
-          <td className="px-4 py-3 text-sm text-foreground/90">
-            {children}
-          </td>
-        );
+        return <td className="px-4 py-3 text-sm text-foreground/90">{children}</td>;
       },
       tr({ children }) {
         return (
-          <tr className="border-b last:border-0 hover:bg-muted/40 transition-colors">
+          <tr className="border-b last:border-0 transition-colors hover:bg-muted/40">
             {children}
           </tr>
         );
@@ -203,9 +291,7 @@ const MarkdownRenderer = ({ content, onExpandMermaid,onLinkClick }) => {
       h4: Heading("h4", "mt-6 mb-2 text-xl font-semibold text-foreground"),
 
       p({ children }) {
-        return (
-          <p className="mb-5 leading-7 text-foreground/90">{children}</p>
-        );
+        return <p className="mb-5 leading-7 text-foreground/90">{children}</p>;
       },
 
       ul({ children }) {
@@ -223,9 +309,7 @@ const MarkdownRenderer = ({ content, onExpandMermaid,onLinkClick }) => {
         );
       },
       li({ children }) {
-        return (
-          <li className="[&>p]:m-0">{children}</li>
-        );
+        return <li className="[&>p]:m-0">{children}</li>;
       },
 
       strong({ children }) {
@@ -255,7 +339,7 @@ const MarkdownRenderer = ({ content, onExpandMermaid,onLinkClick }) => {
           <a
             href={href}
             onClick={handleClick}
-            className="font-medium text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            className="font-medium text-blue-600 underline underline-offset-4 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             target={external ? "_blank" : "_self"}
             rel={external ? "noopener noreferrer" : undefined}
           >
@@ -293,7 +377,7 @@ const MarkdownRenderer = ({ content, onExpandMermaid,onLinkClick }) => {
         );
       },
     };
-  }, [onExpandMermaid,onLinkClick]);
+  }, [onExpandMermaid, onLinkClick]);
 
   return (
     <div className="prose prose-slate prose-lg max-w-none dark:prose-invert prose-headings:scroll-mt-24">

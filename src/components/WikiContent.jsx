@@ -1,7 +1,7 @@
 import React from "react";
 import MarkdownRenderer from "./MarkdownRenderer";
 
-const WikiContent = ({ content, onExpandMermaid }) => {
+const WikiContent = ({ content, onExpandMermaid, onLinkClick }) => {
   return (
     <>
       <a
@@ -16,6 +16,7 @@ const WikiContent = ({ content, onExpandMermaid }) => {
           <MarkdownRenderer
             content={content}
             onExpandMermaid={onExpandMermaid}
+            onLinkClick={onLinkClick}
           />
         </div>
       </main>
