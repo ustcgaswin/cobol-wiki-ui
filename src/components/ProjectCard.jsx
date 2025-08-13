@@ -13,7 +13,8 @@ function formatCreatedAt(dateStr) {
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
+    timeZone: 'UTC', // ensure date-only display aligned with backend UTC
   });
 }
 

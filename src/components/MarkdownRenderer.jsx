@@ -7,7 +7,6 @@ import rehypeRaw from "rehype-raw";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Mermaid from "./Mermaid";
-import CopyButton from "./CopyButton";
 
 // Detect dark mode (Tailwind's 'dark' class or OS preference)
 function useIsDarkMode() {
@@ -46,27 +45,51 @@ function useIsDarkMode() {
   return isDark;
 }
 
-// Minimal, unobtrusive large code block
+// Small, inline copy button used inside toolbars (no absolute positioning)
+function InlineCopyButton({ text }) {
+  const [state, setState] = React.useState("idle"); // idle | copying | copied
+
+  const copy = async () => {
+    try {
+      setState("copying");
+      await navigator.clipboard.writeText(text);
+      setState("copied");
+      setTimeout(() => setState("idle"), 1500);
+    } catch {
+      setState("idle");
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      disabled={state === "copying"}
+      className="rounded border bg-background/70 px-2 py-0.5 text-[11px] text-foreground shadow-sm hover:bg-background hover:cursor-pointer disabled:opacity-60"
+      title={state === "copied" ? "Copied!" : "Copy to clipboard"}
+    >
+      {state === "copied" ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
+// Large code block with a fixed header toolbar
 function LargeCodeBlock({ lang, text }) {
-  const [expanded, setExpanded] = React.useState(false);
   const numLines = text ? text.split(/\r?\n/).length : 0;
   const isDark = useIsDarkMode();
   const prismStyle = isDark ? oneDark : oneLight;
 
   return (
-    <div className="group relative my-4 rounded-md border bg-muted/10 text-foreground shadow-sm">
-      <div className="pointer-events-none absolute right-2 top-2 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-        <div className="pointer-events-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="rounded border bg-background/70 px-2 py-0.5 text-[11px] text-foreground shadow-sm backdrop-blur hover:bg-background"
-          >
-            {expanded ? "Collapse" : "Expand"}
-          </button>
-          <CopyButton text={text} />
+    <div className="my-4 overflow-hidden rounded-md border bg-muted/10 text-foreground shadow-sm">
+      <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-2 py-1">
+        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          {lang}
+        </span>
+        <div className="flex items-center gap-2">
+          <InlineCopyButton  text={text} />
         </div>
       </div>
+
       <SyntaxHighlighter
         style={prismStyle}
         language={lang}
@@ -86,11 +109,11 @@ function LargeCodeBlock({ lang, text }) {
         }}
         customStyle={{
           background: "transparent",
-          padding: "18px 12px 12px 12px", // room for hover toolbar
+          padding: "12px",
           fontSize: "14px",
           lineHeight: "1.55",
           fontFamily: 'Consolas, "Courier New", monospace',
-          maxHeight: expanded ? "none" : "55vh",
+          maxHeight: "55vh", // scroll if long, no expand/collapse
           overflow: "auto",
         }}
         codeTagProps={{
@@ -105,12 +128,12 @@ function LargeCodeBlock({ lang, text }) {
     </div>
   );
 }
-
 // Slugify for heading IDs
 function slugify(text) {
   return String(text)
     .toLowerCase()
-    .replace(/\s+/g, "-")
+    .replace(/\s+/g, "-"
+    )
     .replace(/[^\w-]+/g, "")
     .replace(/--+/g, "-")
     .replace(/^-+/, "")
@@ -176,7 +199,7 @@ const MarkdownRenderer = ({ content, onExpandMermaid, onLinkClick }) => {
             );
           }
 
-          // Large/multiline block -> minimal container with hover toolbar
+          // Large/multiline block -> header toolbar (no absolute overlay)
           return <LargeCodeBlock lang={lang} text={text} />;
         }
 
@@ -205,15 +228,13 @@ const MarkdownRenderer = ({ content, onExpandMermaid, onLinkClick }) => {
           );
         }
 
-        // Large/multiline fenced block without language -> minimal container with hover copy
+        // Large/multiline fenced block without language -> header toolbar with copy
         return (
-          <div className="group relative my-4 rounded-md border bg-muted/10 text-foreground shadow-sm">
-            <div className="pointer-events-none absolute right-2 top-2 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-              <div className="pointer-events-auto">
-                <CopyButton text={plain} />
-              </div>
+          <div className="my-4 overflow-hidden rounded-md border bg-muted/10 text-foreground shadow-sm">
+            <div className="flex items-center justify-end gap-2 border-b bg-muted/30 px-2 py-1">
+              <InlineCopyButton text={plain} />
             </div>
-            <pre className="max-h-[55vh] overflow-auto px-3 pb-3 pt-8 text-sm font-mono leading-relaxed">
+            <pre className="max-h-[55vh] overflow-auto px-3 py-3 text-sm font-mono leading-relaxed">
               <code className="text-foreground">{children}</code>
             </pre>
           </div>
@@ -298,6 +319,17 @@ const MarkdownRenderer = ({ content, onExpandMermaid, onLinkClick }) => {
       },
       em({ children }) {
         return <em className="italic text-foreground/90">{children}</em>;
+      },
+
+      cite({ children, ...props }) {
+        return (
+          <cite
+            {...props}
+            className="not-prose inline-block whitespace-nowrap align-middle rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[0.75rem] italic text-muted-foreground"
+          >
+            {children}
+          </cite>
+        );
       },
 
       a({ href, children }) {

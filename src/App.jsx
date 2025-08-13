@@ -121,7 +121,8 @@ export default function App() {
 
   const itemsPerPage = 3;
 
-  const filteredProjects = useMemo(() => {
+
+    const filteredProjects = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     let filtered = projects;
     if (q) {
@@ -131,10 +132,26 @@ export default function App() {
           (p.description && p.description.toLowerCase().includes(q))
       );
     }
+    // Date-only primary sort, time-of-day secondary within the same date
+    const toDateKey = (value) => {
+      if (!value) return "";
+      const d = new Date(value);
+      const yyyy = d.getUTCFullYear();
+      const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const dd = String(d.getUTCDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`; // YYYY-MM-DD in UTC
+    };
     filtered = [...filtered].sort((a, b) => {
-      const A = new Date(a.created_at).getTime();
-      const B = new Date(b.created_at).getTime();
-      return sortOrder === "newest" ? B - A : A - B;
+      const aDate = toDateKey(a.created_at);
+      const bDate = toDateKey(b.created_at);
+
+      if (aDate !== bDate) {
+        return sortOrder === "newest" ? (aDate < bDate ? 1 : -1) : (aDate < bDate ? -1 : 1);
+      }
+
+      const timeA = new Date(a.created_at).getTime() || 0;
+      const timeB = new Date(b.created_at).getTime() || 0;
+      return sortOrder === "newest" ? timeB - timeA : timeA - timeB;
     });
     return filtered;
   }, [projects, searchQuery, sortOrder]);
