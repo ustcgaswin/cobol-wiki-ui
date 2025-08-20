@@ -184,9 +184,7 @@ const MarkdownRenderer = ({ content, onExpandMermaid, onLinkClick }) => {
 
           if (lang === "mermaid") {
             return (
-              <div className="p-3">
                 <Mermaid chart={text} onExpand={onExpandMermaid} />
-              </div>
             );
           }
 

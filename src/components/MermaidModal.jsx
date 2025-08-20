@@ -11,7 +11,7 @@ import Mermaid from './Mermaid';
 
 const MermaidModal = ({ chart, isOpen, onClose }) => {
   const [state, setState] = useState({
-    transform: { scale: 1, x: 0, y: 0 },
+    transform: { scale: 4, x: 0, y: 0 },
     isDragging: false,
     dragStart: { x: 0, y: 0 },
     showControls: true
@@ -22,7 +22,7 @@ const MermaidModal = ({ chart, isOpen, onClose }) => {
   // Reset state when modal opens without using useEffect
   if (isOpen && !prevIsOpenRef.current) {
     setState({
-      transform: { scale: 1, x: 0, y: 0 },
+      transform: { scale: 4, x: 0, y: 0 },
       isDragging: false,
       dragStart: { x: 0, y: 0 },
       showControls: true
@@ -48,7 +48,7 @@ const MermaidModal = ({ chart, isOpen, onClose }) => {
   const handleReset = useCallback(() => {
     setState(prev => ({
       ...prev,
-      transform: { scale: 1, x: 0, y: 0 }
+      transform: { scale: 4, x: 0, y: 0 }
     }));
   }, []);
 

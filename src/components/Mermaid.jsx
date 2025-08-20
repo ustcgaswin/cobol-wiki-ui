@@ -158,15 +158,15 @@ const Mermaid = ({ chart, onExpand, isModal = false }) => {
       className={`relative group ${
         isModal
           ? 'flex justify-center items-center'
-          : 'my-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 transition-all duration-300 overflow-hidden'
+          : 'my-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 transition-all duration-300 overflow-hidden flex justify-center items-center min-h-[20rem]'
       }`}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
     >
-      <div className={`${isModal ? '' : 'p-6'} flex justify-center items-center`}>
+      <div className={`${isModal ? '' : 'p-6'} w-full flex justify-center items-center`}>
         <div
           dangerouslySetInnerHTML={{ __html: svg }}
-          className="mermaid-diagram [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:rounded-lg"
+          className="mermaid-diagram w-full [&>svg]:w-full [&>svg]:h-auto [&>svg]:rounded-lg"
         />
       </div>
 

@@ -116,7 +116,7 @@ const ProjectCard = ({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <button
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-400 hover:text-red-600 transition-all duration-200 delete-icon shadow-sm border border-slate-200 z-10"
+            className="absolute top-3 right-3 p-2 rounded-full cursor-pointer bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-400 hover:text-red-600 transition-all duration-200 delete-icon shadow-sm border border-slate-200 z-10"
             title="Delete project"
             onClick={(e) => {
               e.stopPropagation();
